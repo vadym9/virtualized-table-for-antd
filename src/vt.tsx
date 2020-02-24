@@ -14,10 +14,6 @@ import * as React from "react";
 import { TableComponents } from "antd/lib/table/interface";
 
 
-interface obj extends Object {
-  [field: string]: any;
-}
-
 
 export
 interface vt_opts extends Object {
@@ -26,11 +22,6 @@ interface vt_opts extends Object {
    * @default 5
    */
   overscanRowCount?: number;
-
-  /**
-   * @deprecated
-   */
-  reflection?: string[] | string;
 
   /**
    * wheel event(only works on native events).
@@ -769,7 +760,7 @@ class VTWrapper extends React.Component<VTWrapperProps> {
 type VTProps = {
   children: any[];
   style: React.CSSProperties;
-} & obj;
+};
 
 class VTable extends React.Component<VTProps> {
 
@@ -779,8 +770,6 @@ class VTable extends React.Component<VTProps> {
   private scrollLeft: number;
   private fixed: e_FIXED;
 
-
-  private user_context: obj;
 
 
   private event_queue: Array<SimEvent>;
@@ -812,17 +801,6 @@ class VTable extends React.Component<VTProps> {
 
     if (this.fixed === e_FIXED.NEITHER) {
       this.restoring = false;
-
-      this.user_context = {};
-
-      let reflection = ctx.reflection || [];
-      if (typeof reflection === "string") {
-        reflection = [reflection];
-      }
-  
-      for (let i = 0; i < reflection.length; ++i) {
-        this.user_context[reflection[i]] = this.props[reflection[i]];
-      }
   
       this.event_queue = [];
       this.nevent_queue = [];
@@ -894,7 +872,7 @@ class VTable extends React.Component<VTProps> {
         ref={this.wrap_inst}
         style={{ width, position: "relative", transform: "matrix(1, 0, 0, 1, 0, 0)" }}
       >
-        <S.Provider value={{ fixed: this.fixed, ...this.user_context }}>
+        <S.Provider value={{ fixed: this.fixed }}>
           <Table {...rest} ref={this.inst} style={rest_style}>{children}</Table>
         </S.Provider>
       </div>
@@ -1310,16 +1288,6 @@ function init_vt(id: number): VT_CONTEXT {
 export
 function VTComponents(vt_opts: vt_opts): TableComponents {
 
-  if (Object.hasOwnProperty.call(vt_opts, "height")) {
-    console.warn(`The property \`vt_opts.height\` has been deprecated.
-                  Now it depends entirely on \`scroll.y\`.`);
-  }
-
-  if (Object.hasOwnProperty.call(vt_opts, "reflection")) {
-    console.warn(`The property \`vt_opts.reflection\`
-                  will be deprecated in the next release.`);
-  }
-
   const inside = init_vt(vt_opts.id);
 
 
@@ -1339,28 +1307,12 @@ function VTComponents(vt_opts: vt_opts): TableComponents {
   return inside._vtcomponents;
 }
 
-/**
- * @deprecated 
- */
-export
-function getVTContext(id: number): React.Context<vt_ctx> {
-  console.warn("This function will be deprecated in the next release.");
-  return init_vt(id)._store;
-}
 
 export
 function setComponents(id: number, components: TableComponents): void {
   _set_components(init_vt(id), components);
 }
 
-/**
- * @deprecated
- */
-export
-function getVTComponents(id: number): TableComponents {
-  console.warn("This function will be deprecated in the next release.")
-  return init_vt(id).components;
-}
 
 export
 function VTScroll(id: number, param?: { top: number; left: number }): { top: number; left: number } {
