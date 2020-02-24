@@ -582,178 +582,128 @@ class VTRow extends React.Component<VTRowProps> {
 }
 
 
-type VTWrapperProps = {
-  children: any[];
-};
 
-
-class VTWrapper extends React.Component<VTWrapperProps> {
-
-  public constructor(props: VTWrapperProps, context: any) {
-    super(props, context);
-  }
-
-  public render(): JSX.Element {
-    const { children, ...restProps } = this.props;
-    return (
-      <S.Consumer>
-        {
-          ({ fixed }) => {
-
-            const { _offset_head, _offset_tail } = ctx;
-            let head = _offset_head;
-            let tail = _offset_tail;
-
-            const trs: any[] = [];
-            let len = children.length;
-
-            const Wrapper = ctx.components.body.wrapper;
-
-            if (ctx.vt_state === e_VT_STATE.WAITING) {
-              // waitting for loading data as soon, just return this as following.
-              return <Wrapper {...restProps}>{trs}</Wrapper>;
-            }
-
-            if (len >= 0 && fixed === e_FIXED.NEITHER) {
-
-              if (ctx.vt_state === e_VT_STATE.INIT) {
-                /* init trs [0, 1] */
-                for (let i = head; i < tail; ++i) {
-                  trs.push(children[i]);
-                }
-
-                if (ctx.row_count !== len) {
-                  set_tr_cnt(ctx, len);
-                }
-
-              } else if (ctx.vt_state & e_VT_STATE.RUNNING) {
-
-                let offset = 0;
-                const last_head = ctx._offset_head;
-                const last_tail = ctx._offset_tail;
-                if (tail > len) {
-                  offset = tail - len;
-                  tail -= offset;
-                  head -= offset;
-                  if (head < 0) head = 0;
-                  if (tail < 0) tail = 0;
-                  // update the `head` and `tail`.
-                  _set_offset(ctx,
-                    ctx._offset_top/* NOTE: invalided param, just to fill for this param */,
-                    head, tail);
-                }
-
-                const { PSRA, PSRB } = ctx;
-
-                if (ctx.row_count !== len) {
-                  set_tr_cnt(ctx, len);
-                }
-
-                len = ctx.row_count;
-                let prev_len = ctx.prev_row_count;
-
-                if (ctx.vt_state & e_VT_STATE.PROTECTION) {
-                  ctx.vt_state &= ~e_VT_STATE.PROTECTION;
-                  prev_len = len;
-                }
-
-                /**
-                 * start rendering phase.
-                 * to render rows to filter.
-                 */
-                if (len > prev_len) {
-                  /* insert */
-                  ctx._keys2insert = 0;
-                  for (let i = head; i < tail; ++i) {
-                    if (i >= ctx.row_height.length) {
-                      ctx._keys2insert++;
-                      // insert a row at index `i` with height `0`.
-                      ctx.row_height.splice(i, 0, 0);
-                    }
-                    trs.push(children[i]);
-                  }
-                } else {
-                  for (let i = head; i < tail; ++i) {
-                    trs.push(children[i]);
-                  }
-                }
-
-                /**
-                 * start srs_diff phase.
-                 * first up, Previous-Shadow-Rows below `trs`,
-                 * then Previous-Shadow-Rows above `trs`.
-                 */
-                let fixed_PSRA1 = PSRA[1] - offset;
-                if (fixed_PSRA1 < 0) fixed_PSRA1 = 0;
-  
-                let fixed_PSRB0 = PSRB[0] - offset;
-                if (fixed_PSRB0 < 0) fixed_PSRB0 = 0;
-
-                /* PSR's range: [begin, end) */
-                if (PSRB[0] === -1) {
-                  // init Rows.
-                  const rows = new Array(tail - 1/* substract the first row */).fill(0, 0, tail - 1);
-                  ctx.row_height = ctx.row_height.concat(rows);
-                  // init Shadow Rows.
-                  const shadow_rows = new Array(len - tail).fill(ctx.possible_hight_per_tr, 0, len - tail);
-                  ctx.row_height = ctx.row_height.concat(shadow_rows);
-                  ctx.computed_h = ctx.computed_h + ctx.possible_hight_per_tr * (len - tail);
-
-                  PSRB[0] = tail;
-                  PSRB[1] = len;
-                } else {
-                  if (len < prev_len) {
-                    /* free some rows */
-                    srs_diff(
-                      ctx, PSRB,
-                      last_head, last_tail,
-                      tail, len, fixed_PSRB0, PSRB[1]);
-                  } else if (len > prev_len) {
-                    /* insert some rows */
-                    srs_diff(
-                      ctx, PSRB,
-                      last_head, last_tail,
-                      tail, len, PSRB[0], PSRB[1]);
-                  } else {
-                    PSRB[0] = tail;
-                    PSRB[1] = len;
-                  }
-                }
-
-                if (PSRA[0] === -1) {
-                  // init Shadow Rows.
-                  PSRA[0] = 0;
-                  PSRA[1] = 0;
-                } else {
-                  PSRA[0] = 0;
-                  PSRA[1] = head;
-                }
-
-                ctx.prev_row_count = ctx.row_count;
-              } /* RUNNING */
-
-            } /* len && this.fixed === e_FIXED.NEITHER */
-
-            /* fixed L R */
-            if (len >= 0 && fixed !== e_FIXED.NEITHER) {
+function VTWrapper(): JSX.Element {
+  const { children, ...restProps } = this.props;
+  return (
+    <S.Consumer>
+      {
+        ({ fixed }) => {
+          const { _offset_head, _offset_tail } = ctx;
+          let head = _offset_head;
+          let tail = _offset_tail;
+          const trs: any[] = [];
+          let len = children.length;
+          const Wrapper = ctx.components.body.wrapper;
+          if (ctx.vt_state === e_VT_STATE.WAITING) {
+            // waitting for loading data as soon, just return this as following.
+            return <Wrapper {...restProps}>{trs}</Wrapper>;
+          }
+          if (len >= 0 && fixed === e_FIXED.NEITHER) {
+            if (ctx.vt_state === e_VT_STATE.INIT) {
+              /* init trs [0, 1] */
               for (let i = head; i < tail; ++i) {
                 trs.push(children[i]);
               }
+              if (ctx.row_count !== len) {
+                set_tr_cnt(ctx, len);
+              }
+            } else if (ctx.vt_state & e_VT_STATE.RUNNING) {
+              let offset = 0;
+              const last_head = ctx._offset_head;
+              const last_tail = ctx._offset_tail;
+              if (tail > len) {
+                offset = tail - len;
+                tail -= offset;
+                head -= offset;
+                if (head < 0) head = 0;
+                if (tail < 0) tail = 0;
+                // update the `head` and `tail`.
+                _set_offset(ctx,
+                  ctx._offset_top/* NOTE: invalided param, just to fill for this param */,
+                  head, tail);
+              }
+              const { PSRB } = ctx;
+              if (ctx.row_count !== len) {
+                set_tr_cnt(ctx, len);
+              }
+              len = ctx.row_count;
+              let prev_len = ctx.prev_row_count;
+              if (ctx.vt_state & e_VT_STATE.PROTECTION) {
+                ctx.vt_state &= ~e_VT_STATE.PROTECTION;
+                prev_len = len;
+              }
+              /**
+               * start rendering phase.
+               * to render rows to filter.
+               */
+              if (len > prev_len) {
+                /* insert */
+                ctx._keys2insert = 0;
+                for (let i = head; i < tail; ++i) {
+                  if (i >= ctx.row_height.length) {
+                    ctx._keys2insert++;
+                    // insert a row at index `i` with height `0`.
+                    ctx.row_height.splice(i, 0, 0);
+                  }
+                  trs.push(children[i]);
+                }
+              } else {
+                for (let i = head; i < tail; ++i) {
+                  trs.push(children[i]);
+                }
+              }
+              /**
+               * start srs_diff phase.
+               * first up, Previous-Shadow-Rows below `trs`,
+               * then Previous-Shadow-Rows above `trs`.
+               */
+              let fixed_PSRB0 = PSRB[0] - offset;
+              if (fixed_PSRB0 < 0) fixed_PSRB0 = 0;
+              /* PSR's range: [begin, end) */
+              if (PSRB[0] === -1) {
+                // init Rows.
+                const rows = new Array(tail - 1/* substract the first row */).fill(0, 0, tail - 1);
+                ctx.row_height = ctx.row_height.concat(rows);
+                // init Shadow Rows.
+                const shadow_rows = new Array(len - tail).fill(ctx.possible_hight_per_tr, 0, len - tail);
+                ctx.row_height = ctx.row_height.concat(shadow_rows);
+                ctx.computed_h = ctx.computed_h + ctx.possible_hight_per_tr * (len - tail);
+                PSRB[0] = tail;
+                PSRB[1] = len;
+              } else {
+                if (len < prev_len) {
+                  /* free some rows */
+                  srs_diff(
+                    ctx, PSRB,
+                    last_head, last_tail,
+                    tail, len, fixed_PSRB0, PSRB[1]);
+                } else if (len > prev_len) {
+                  /* insert some rows */
+                  srs_diff(
+                    ctx, PSRB,
+                    last_head, last_tail,
+                    tail, len, PSRB[0], PSRB[1]);
+                } else {
+                  PSRB[0] = tail;
+                  PSRB[1] = len;
+                }
+              }
+              ctx.prev_row_count = ctx.row_count;
+            } /* RUNNING */
+          } /* len && this.fixed === e_FIXED.NEITHER */
+          /* fixed L R */
+          if (len >= 0 && fixed !== e_FIXED.NEITHER) {
+            for (let i = head; i < tail; ++i) {
+              trs.push(children[i]);
             }
-
-            return <Wrapper {...restProps}>{trs}</Wrapper>;
           }
+          return <Wrapper {...restProps}>{trs}</Wrapper>;
         }
-      </S.Consumer>
-    );
-  }
-
-  public shouldComponentUpdate(nextProps: VTWrapperProps, nextState: any): boolean {
-    return true;
-  }
-
+      }
+    </S.Consumer>
+  );
 }
-
 
 
 
